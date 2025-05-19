@@ -101,10 +101,12 @@ export default function SetupPage() {
 
   const handleShouldProceed = (proceed: boolean) => {
     if (proceed) {
-      if (currentStep === SETUP_STEP_COUNT) {
+      if (currentStep === 1) {
+        // Skip directly to finish step since we removed the API step
+        setCurrentStep(2)
+      } else if (currentStep === 2) {
+        // On the finish step, save settings and proceed to chat
         handleSaveSetupSetting()
-      } else {
-        setCurrentStep(currentStep + 1)
       }
     } else {
       setCurrentStep(currentStep - 1)
@@ -125,21 +127,22 @@ export default function SetupPage() {
       has_onboarded: true,
       display_name: displayName,
       username,
-      openai_api_key: openaiAPIKey,
-      openai_organization_id: openaiOrgID,
-      anthropic_api_key: anthropicAPIKey,
-      google_gemini_api_key: googleGeminiAPIKey,
-      mistral_api_key: mistralAPIKey,
-      groq_api_key: groqAPIKey,
-      perplexity_api_key: perplexityAPIKey,
-      openrouter_api_key: openrouterAPIKey,
-      use_azure_openai: useAzureOpenai,
-      azure_openai_api_key: azureOpenaiAPIKey,
-      azure_openai_endpoint: azureOpenaiEndpoint,
-      azure_openai_35_turbo_id: azureOpenai35TurboID,
-      azure_openai_45_turbo_id: azureOpenai45TurboID,
-      azure_openai_45_vision_id: azureOpenai45VisionID,
-      azure_openai_embeddings_id: azureOpenaiEmbeddingsID
+      // Use environment variables for all API keys
+      openai_api_key: process.env.OPENAI_API_KEY || "",
+      openai_organization_id: process.env.OPENAI_ORGANIZATION_ID || "",
+      anthropic_api_key: process.env.ANTHROPIC_API_KEY || "",
+      google_gemini_api_key: process.env.GOOGLE_GEMINI_API_KEY || "",
+      mistral_api_key: process.env.MISTRAL_API_KEY || "",
+      groq_api_key: process.env.GROQ_API_KEY || "",
+      perplexity_api_key: process.env.PERPLEXITY_API_KEY || "",
+      openrouter_api_key: process.env.OPENROUTER_API_KEY || "",
+      use_azure_openai: false,
+      azure_openai_api_key: "",
+      azure_openai_endpoint: "",
+      azure_openai_35_turbo_id: "",
+      azure_openai_45_turbo_id: "",
+      azure_openai_45_vision_id: "",
+      azure_openai_embeddings_id: ""
     }
 
     const updatedProfile = await updateProfile(profile.id, updateProfilePayload)
@@ -179,54 +182,8 @@ export default function SetupPage() {
           </StepContainer>
         )
 
-      // API Step
+      // Finish Step (previously step 3, now step 2)
       case 2:
-        return (
-          <StepContainer
-            stepDescription="Enter API keys for each service you'd like to use."
-            stepNum={currentStep}
-            stepTitle="Set API Keys (optional)"
-            onShouldProceed={handleShouldProceed}
-            showNextButton={true}
-            showBackButton={true}
-          >
-            <APIStep
-              openaiAPIKey={openaiAPIKey}
-              openaiOrgID={openaiOrgID}
-              azureOpenaiAPIKey={azureOpenaiAPIKey}
-              azureOpenaiEndpoint={azureOpenaiEndpoint}
-              azureOpenai35TurboID={azureOpenai35TurboID}
-              azureOpenai45TurboID={azureOpenai45TurboID}
-              azureOpenai45VisionID={azureOpenai45VisionID}
-              azureOpenaiEmbeddingsID={azureOpenaiEmbeddingsID}
-              anthropicAPIKey={anthropicAPIKey}
-              googleGeminiAPIKey={googleGeminiAPIKey}
-              mistralAPIKey={mistralAPIKey}
-              groqAPIKey={groqAPIKey}
-              perplexityAPIKey={perplexityAPIKey}
-              useAzureOpenai={useAzureOpenai}
-              onOpenaiAPIKeyChange={setOpenaiAPIKey}
-              onOpenaiOrgIDChange={setOpenaiOrgID}
-              onAzureOpenaiAPIKeyChange={setAzureOpenaiAPIKey}
-              onAzureOpenaiEndpointChange={setAzureOpenaiEndpoint}
-              onAzureOpenai35TurboIDChange={setAzureOpenai35TurboID}
-              onAzureOpenai45TurboIDChange={setAzureOpenai45TurboID}
-              onAzureOpenai45VisionIDChange={setAzureOpenai45VisionID}
-              onAzureOpenaiEmbeddingsIDChange={setAzureOpenaiEmbeddingsID}
-              onAnthropicAPIKeyChange={setAnthropicAPIKey}
-              onGoogleGeminiAPIKeyChange={setGoogleGeminiAPIKey}
-              onMistralAPIKeyChange={setMistralAPIKey}
-              onGroqAPIKeyChange={setGroqAPIKey}
-              onPerplexityAPIKeyChange={setPerplexityAPIKey}
-              onUseAzureOpenaiChange={setUseAzureOpenai}
-              openrouterAPIKey={openrouterAPIKey}
-              onOpenrouterAPIKeyChange={setOpenrouterAPIKey}
-            />
-          </StepContainer>
-        )
-
-      // Finish Step
-      case 3:
         return (
           <StepContainer
             stepDescription="You are all set up!"
