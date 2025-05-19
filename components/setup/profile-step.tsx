@@ -49,7 +49,10 @@ export const ProfileStep: FC<ProfileStepProps> = ({
 
   const checkUsernameAvailability = useCallback(
     debounce(async (username: string) => {
-      if (!username) return
+      if (!username) {
+        onUsernameAvailableChange(false)
+        return
+      }
 
       if (username.length < PROFILE_USERNAME_MIN) {
         onUsernameAvailableChange(false)
@@ -72,19 +75,34 @@ export const ProfileStep: FC<ProfileStepProps> = ({
 
       setLoading(true)
 
-      const response = await fetch(`/api/username/available`, {
-        method: "POST",
-        body: JSON.stringify({ username })
-      })
+      try {
+        const response = await fetch(`/api/username/available`, {
+          method: "POST",
+          body: JSON.stringify({ username })
+        })
 
-      const data = await response.json()
-      const isAvailable = data.isAvailable
+        if (!response.ok)
+          throw new Error("Failed to check username availability")
 
-      onUsernameAvailableChange(isAvailable)
+        const data = await response.json()
+        const isAvailable = data.isAvailable
 
-      setLoading(false)
+        onUsernameAvailableChange(isAvailable)
+
+        if (!isAvailable) {
+          toast.error(
+            "This username is already taken. Please choose another one."
+          )
+        }
+      } catch (error) {
+        console.error("Error checking username availability:", error)
+        onUsernameAvailableChange(false)
+        toast.error("Error checking username availability. Please try again.")
+      } finally {
+        setLoading(false)
+      }
     }, 500),
-    []
+    [onUsernameAvailableChange]
   )
 
   return (
