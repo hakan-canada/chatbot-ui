@@ -73,15 +73,15 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
     profile?.profile_context || ""
   )
 
+  // API keys are managed via environment variables
   const [useAzureOpenai, setUseAzureOpenai] = useState(
-    profile?.use_azure_openai
-  )
-  const [openaiAPIKey, setOpenaiAPIKey] = useState(
-    profile?.openai_api_key || ""
+    profile?.use_azure_openai || false
   )
   const [openaiOrgID, setOpenaiOrgID] = useState(
     profile?.openai_organization_id || ""
   )
+
+  // Azure OpenAI settings (disabled as we're using standard OpenAI)
   const [azureOpenaiAPIKey, setAzureOpenaiAPIKey] = useState(
     profile?.azure_openai_api_key || ""
   )
@@ -100,6 +100,8 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
   const [azureEmbeddingsID, setAzureEmbeddingsID] = useState(
     profile?.azure_openai_embeddings_id || ""
   )
+
+  // Other API keys (managed via environment variables)
   const [anthropicAPIKey, setAnthropicAPIKey] = useState(
     profile?.anthropic_api_key || ""
   )
@@ -113,9 +115,11 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
   const [perplexityAPIKey, setPerplexityAPIKey] = useState(
     profile?.perplexity_api_key || ""
   )
-
   const [openrouterAPIKey, setOpenrouterAPIKey] = useState(
     profile?.openrouter_api_key || ""
+  )
+  const [openrouterModel, setOpenrouterModel] = useState(
+    (profile as any)?.openrouter_model || ""
   )
 
   const handleSignOut = async () => {
@@ -136,29 +140,51 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
       profileImagePath = path
     }
 
-    const updatedProfile = await updateProfile(profile.id, {
+    const profileData: any = {
       ...profile,
       display_name: displayName,
       username,
       profile_context: profileInstructions,
       image_url: profileImageUrl,
       image_path: profileImagePath,
-      openai_api_key: openaiAPIKey,
-      openai_organization_id: openaiOrgID,
-      anthropic_api_key: anthropicAPIKey,
-      google_gemini_api_key: googleGeminiAPIKey,
-      mistral_api_key: mistralAPIKey,
-      groq_api_key: groqAPIKey,
-      perplexity_api_key: perplexityAPIKey,
-      use_azure_openai: useAzureOpenai,
-      azure_openai_api_key: azureOpenaiAPIKey,
-      azure_openai_endpoint: azureOpenaiEndpoint,
-      azure_openai_35_turbo_id: azureOpenai35TurboID,
-      azure_openai_45_turbo_id: azureOpenai45TurboID,
-      azure_openai_45_vision_id: azureOpenai45VisionID,
-      azure_openai_embeddings_id: azureEmbeddingsID,
-      openrouter_api_key: openrouterAPIKey
-    })
+      // API keys are managed via environment variables
+      openai_api_key: process.env.OPENAI_API_KEY || profile.openai_api_key,
+      openai_organization_id: process.env.OPENAI_ORGANIZATION_ID || openaiOrgID,
+      // Other API keys are managed via environment variables
+      anthropic_api_key:
+        process.env.ANTHROPIC_API_KEY || profile.anthropic_api_key,
+      google_gemini_api_key:
+        process.env.GOOGLE_GEMINI_API_KEY || profile.google_gemini_api_key,
+      openrouter_api_key:
+        process.env.OPENROUTER_API_KEY || profile.openrouter_api_key,
+      perplexity_api_key:
+        process.env.PERPLEXITY_API_KEY || profile.perplexity_api_key,
+      // Disable Azure OpenAI as it's not used
+      use_azure_openai: false,
+      azure_openai_api_key:
+        process.env.AZURE_OPENAI_API_KEY || profile.azure_openai_api_key,
+      azure_openai_endpoint:
+        process.env.AZURE_OPENAI_ENDPOINT || profile.azure_openai_endpoint,
+      azure_openai_35_turbo_id:
+        process.env.AZURE_OPENAI_35_TURBO_ID ||
+        profile.azure_openai_35_turbo_id,
+      azure_openai_45_turbo_id:
+        process.env.AZURE_OPENAI_45_TURBO_ID ||
+        profile.azure_openai_45_turbo_id,
+      azure_openai_45_vision_id:
+        process.env.AZURE_OPENAI_45_VISION_ID ||
+        profile.azure_openai_45_vision_id,
+      azure_openai_embeddings_id:
+        process.env.AZURE_OPENAI_EMBEDDINGS_ID ||
+        profile.azure_openai_embeddings_id
+    }
+
+    // Add openrouter_model only if it exists in the profile or has a value
+    if (openrouterModel) {
+      profileData.openrouter_model = openrouterModel
+    }
+
+    const updatedProfile = await updateProfile(profile.id, profileData)
 
     setProfile(updatedProfile)
 
@@ -434,294 +460,84 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
 
             <TabsContent className="mt-4 space-y-4" value="keys">
               <div className="mt-5 space-y-2">
-                <Label className="flex items-center">
-                  {useAzureOpenai
-                    ? envKeyMap["azure"]
-                      ? ""
-                      : "Azure OpenAI API Key"
-                    : envKeyMap["openai"]
-                      ? ""
-                      : "OpenAI API Key"}
-
-                  <Button
-                    className={cn(
-                      "h-[18px] w-[150px] text-[11px]",
-                      (useAzureOpenai && !envKeyMap["azure"]) ||
-                        (!useAzureOpenai && !envKeyMap["openai"])
-                        ? "ml-3"
-                        : "mb-3"
-                    )}
-                    onClick={() => setUseAzureOpenai(!useAzureOpenai)}
-                  >
-                    {useAzureOpenai
-                      ? "Switch To Standard OpenAI"
-                      : "Switch To Azure OpenAI"}
-                  </Button>
-                </Label>
-
-                {useAzureOpenai ? (
-                  <>
-                    {envKeyMap["azure"] ? (
-                      <Label>Azure OpenAI API key set by admin.</Label>
-                    ) : (
-                      <Input
-                        placeholder="Azure OpenAI API Key"
-                        type="password"
-                        value={azureOpenaiAPIKey}
-                        onChange={e => setAzureOpenaiAPIKey(e.target.value)}
-                      />
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {envKeyMap["openai"] ? (
-                      <Label>OpenAI API key set by admin.</Label>
-                    ) : (
-                      <Input
-                        placeholder="OpenAI API Key"
-                        type="password"
-                        value={openaiAPIKey}
-                        onChange={e => setOpenaiAPIKey(e.target.value)}
-                      />
-                    )}
-                  </>
-                )}
-              </div>
-
-              <div className="ml-8 space-y-3">
-                {useAzureOpenai ? (
-                  <>
-                    {
-                      <div className="space-y-1">
-                        {envKeyMap["azure_openai_endpoint"] ? (
-                          <Label className="text-xs">
-                            Azure endpoint set by admin.
-                          </Label>
-                        ) : (
-                          <>
-                            <Label>Azure Endpoint</Label>
-
-                            <Input
-                              placeholder="https://your-endpoint.openai.azure.com"
-                              value={azureOpenaiEndpoint}
-                              onChange={e =>
-                                setAzureOpenaiEndpoint(e.target.value)
-                              }
-                            />
-                          </>
-                        )}
-                      </div>
-                    }
-
-                    {
-                      <div className="space-y-1">
-                        {envKeyMap["azure_gpt_35_turbo_name"] ? (
-                          <Label className="text-xs">
-                            Azure GPT-3.5 Turbo deployment name set by admin.
-                          </Label>
-                        ) : (
-                          <>
-                            <Label>Azure GPT-3.5 Turbo Deployment Name</Label>
-
-                            <Input
-                              placeholder="Azure GPT-3.5 Turbo Deployment Name"
-                              value={azureOpenai35TurboID}
-                              onChange={e =>
-                                setAzureOpenai35TurboID(e.target.value)
-                              }
-                            />
-                          </>
-                        )}
-                      </div>
-                    }
-
-                    {
-                      <div className="space-y-1">
-                        {envKeyMap["azure_gpt_45_turbo_name"] ? (
-                          <Label className="text-xs">
-                            Azure GPT-4.5 Turbo deployment name set by admin.
-                          </Label>
-                        ) : (
-                          <>
-                            <Label>Azure GPT-4.5 Turbo Deployment Name</Label>
-
-                            <Input
-                              placeholder="Azure GPT-4.5 Turbo Deployment Name"
-                              value={azureOpenai45TurboID}
-                              onChange={e =>
-                                setAzureOpenai45TurboID(e.target.value)
-                              }
-                            />
-                          </>
-                        )}
-                      </div>
-                    }
-
-                    {
-                      <div className="space-y-1">
-                        {envKeyMap["azure_gpt_45_vision_name"] ? (
-                          <Label className="text-xs">
-                            Azure GPT-4.5 Vision deployment name set by admin.
-                          </Label>
-                        ) : (
-                          <>
-                            <Label>Azure GPT-4.5 Vision Deployment Name</Label>
-
-                            <Input
-                              placeholder="Azure GPT-4.5 Vision Deployment Name"
-                              value={azureOpenai45VisionID}
-                              onChange={e =>
-                                setAzureOpenai45VisionID(e.target.value)
-                              }
-                            />
-                          </>
-                        )}
-                      </div>
-                    }
-
-                    {
-                      <div className="space-y-1">
-                        {envKeyMap["azure_embeddings_name"] ? (
-                          <Label className="text-xs">
-                            Azure Embeddings deployment name set by admin.
-                          </Label>
-                        ) : (
-                          <>
-                            <Label>Azure Embeddings Deployment Name</Label>
-
-                            <Input
-                              placeholder="Azure Embeddings Deployment Name"
-                              value={azureEmbeddingsID}
-                              onChange={e =>
-                                setAzureEmbeddingsID(e.target.value)
-                              }
-                            />
-                          </>
-                        )}
-                      </div>
-                    }
-                  </>
-                ) : (
-                  <>
-                    <div className="space-y-1">
-                      {envKeyMap["openai_organization_id"] ? (
-                        <Label className="text-xs">
-                          OpenAI Organization ID set by admin.
-                        </Label>
-                      ) : (
-                        <>
-                          <Label>OpenAI Organization ID</Label>
-
-                          <Input
-                            placeholder="OpenAI Organization ID (optional)"
-                            disabled={
-                              !!process.env.NEXT_PUBLIC_OPENAI_ORGANIZATION_ID
-                            }
-                            type="password"
-                            value={openaiOrgID}
-                            onChange={e => setOpenaiOrgID(e.target.value)}
-                          />
-                        </>
-                      )}
-                    </div>
-                  </>
-                )}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">OpenAI API Key</Label>
+                  <div className="border-input bg-background rounded-md border px-3 py-2 text-sm">
+                    <p className="text-muted-foreground">
+                      API key is managed via environment variable.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-1">
-                {envKeyMap["anthropic"] ? (
-                  <Label>Anthropic API key set by admin.</Label>
-                ) : (
-                  <>
-                    <Label>Anthropic API Key</Label>
-                    <Input
-                      placeholder="Anthropic API Key"
-                      type="password"
-                      value={anthropicAPIKey}
-                      onChange={e => setAnthropicAPIKey(e.target.value)}
-                    />
-                  </>
-                )}
+                <Label>OpenAI Organization ID (Optional)</Label>
+                <Input
+                  placeholder="OpenAI Organization ID (optional)"
+                  disabled={!!process.env.NEXT_PUBLIC_OPENAI_ORGANIZATION_ID}
+                  type="password"
+                  value={process.env.OPENAI_ORGANIZATION_ID || openaiOrgID}
+                  onChange={e => setOpenaiOrgID(e.target.value)}
+                />
+                <p className="text-muted-foreground text-xs">
+                  {process.env.OPENAI_ORGANIZATION_ID
+                    ? "Organization ID is managed via environment variable."
+                    : "Leave blank if not using organization-specific billing."}
+                </p>
               </div>
 
               <div className="space-y-1">
-                {envKeyMap["google"] ? (
-                  <Label>Google Gemini API key set by admin.</Label>
-                ) : (
-                  <>
-                    <Label>Google Gemini API Key</Label>
-                    <Input
-                      placeholder="Google Gemini API Key"
-                      type="password"
-                      value={googleGeminiAPIKey}
-                      onChange={e => setGoogleGeminiAPIKey(e.target.value)}
-                    />
-                  </>
-                )}
+                <Label>Anthropic API Key</Label>
+                <div className="border-input bg-background rounded-md border px-3 py-2 text-sm">
+                  <p className="text-muted-foreground">
+                    API keys are managed via environment variables.
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-1">
-                {envKeyMap["mistral"] ? (
-                  <Label>Mistral API key set by admin.</Label>
-                ) : (
-                  <>
-                    <Label>Mistral API Key</Label>
-                    <Input
-                      placeholder="Mistral API Key"
-                      type="password"
-                      value={mistralAPIKey}
-                      onChange={e => setMistralAPIKey(e.target.value)}
-                    />
-                  </>
-                )}
+                <Label>Google Gemini API Key</Label>
+                <div className="border-input bg-background rounded-md border px-3 py-2 text-sm">
+                  <p className="text-muted-foreground">
+                    API keys are managed via environment variables.
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-1">
-                {envKeyMap["groq"] ? (
-                  <Label>Groq API key set by admin.</Label>
-                ) : (
-                  <>
-                    <Label>Groq API Key</Label>
-                    <Input
-                      placeholder="Groq API Key"
-                      type="password"
-                      value={groqAPIKey}
-                      onChange={e => setGroqAPIKey(e.target.value)}
-                    />
-                  </>
-                )}
+                <Label>Mistral API Key</Label>
+                <div className="border-input bg-background rounded-md border px-3 py-2 text-sm">
+                  <p className="text-muted-foreground">
+                    API keys are managed via environment variables.
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-1">
-                {envKeyMap["perplexity"] ? (
-                  <Label>Perplexity API key set by admin.</Label>
-                ) : (
-                  <>
-                    <Label>Perplexity API Key</Label>
-                    <Input
-                      placeholder="Perplexity API Key"
-                      type="password"
-                      value={perplexityAPIKey}
-                      onChange={e => setPerplexityAPIKey(e.target.value)}
-                    />
-                  </>
-                )}
+                <Label>Groq API Key</Label>
+                <div className="border-input bg-background rounded-md border px-3 py-2 text-sm">
+                  <p className="text-muted-foreground">
+                    API keys are managed via environment variables.
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-1">
-                {envKeyMap["openrouter"] ? (
-                  <Label>OpenRouter API key set by admin.</Label>
-                ) : (
-                  <>
-                    <Label>OpenRouter API Key</Label>
-                    <Input
-                      placeholder="OpenRouter API Key"
-                      type="password"
-                      value={openrouterAPIKey}
-                      onChange={e => setOpenrouterAPIKey(e.target.value)}
-                    />
-                  </>
-                )}
+                <Label>Perplexity API Key</Label>
+                <div className="border-input bg-background rounded-md border px-3 py-2 text-sm">
+                  <p className="text-muted-foreground">
+                    API keys are managed via environment variables.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label>OpenRouter API Key</Label>
+                <div className="border-input bg-background rounded-md border px-3 py-2 text-sm">
+                  <p className="text-muted-foreground">
+                    API keys are managed via environment variables.
+                  </p>
+                </div>
               </div>
             </TabsContent>
           </Tabs>

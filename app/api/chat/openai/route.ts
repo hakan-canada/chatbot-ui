@@ -17,11 +17,16 @@ export async function POST(request: Request) {
   try {
     const profile = await getServerProfile()
 
-    checkApiKey(profile.openai_api_key, "OpenAI")
+    // Use environment variable if available, otherwise use profile key
+    const openaiApiKey =
+      process.env.OPENAI_API_KEY || profile.openai_api_key || ""
+
+    checkApiKey(openaiApiKey, "OpenAI")
 
     const openai = new OpenAI({
-      apiKey: profile.openai_api_key || "",
-      organization: profile.openai_organization_id
+      apiKey: openaiApiKey,
+      organization:
+        process.env.OPENAI_ORGANIZATION_ID || profile.openai_organization_id
     })
 
     const response = await openai.chat.completions.create({
@@ -45,10 +50,10 @@ export async function POST(request: Request) {
 
     if (errorMessage.toLowerCase().includes("api key not found")) {
       errorMessage =
-        "OpenAI API Key not found. Please set it in your profile settings."
+        "OpenAI API Key not found. Please set the OPENAI_API_KEY environment variable."
     } else if (errorMessage.toLowerCase().includes("incorrect api key")) {
       errorMessage =
-        "OpenAI API Key is incorrect. Please fix it in your profile settings."
+        "OpenAI API Key is incorrect. Please check your OPENAI_API_KEY environment variable."
     }
 
     return new Response(JSON.stringify({ message: errorMessage }), {

@@ -57,6 +57,7 @@ function addApiKeysToProfile(profile: Tables<"profiles">) {
     [VALID_ENV_KEYS.AZURE_EMBEDDINGS_NAME]: "azure_openai_embeddings_id"
   }
 
+  // Always use environment variables if they exist, regardless of user settings
   for (const [envKey, profileKey] of Object.entries(apiKeys)) {
     if (process.env[envKey]) {
       ;(profile as any)[profileKey] = process.env[envKey]
